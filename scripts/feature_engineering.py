@@ -10,16 +10,16 @@ OUTPUT_PATH = Path("data/cleaned/customer_churn_final.csv")
 
 
 # --------------------------------------------------
-# Load data
+# Load preprocessed data
 # --------------------------------------------------
 df = pd.read_csv(INPUT_PATH)
 
-print("=== Feature Engineering ===")
-print("Original shape:", df.shape)
+print("=== Preprocessed Dataset ===")
+print("Shape:", df.shape)
 
 
 # --------------------------------------------------
-# 1. Create Purchase Recency Group
+# 1. Create purchase recency groups
 # --------------------------------------------------
 bins = [0, 30, 60, 90, 180, 270, 365]
 
@@ -41,17 +41,13 @@ df["purchase_recency_group"] = pd.cut(
 
 
 # --------------------------------------------------
-# 2. Select final variables
+# 2. Select columns for analysis
 # --------------------------------------------------
 columns_to_keep = [
     "customer_id",
     "churn_flag",
-
-    # Customer profile
     "customer_segment",
     "customer_age_months",
-
-    # Main churn-related factors
     "satisfaction_score",
     "engagement_level",
     "support_tickets",
@@ -59,16 +55,13 @@ columns_to_keep = [
     "returns_count",
     "days_since_last_purchase",
     "purchase_recency_group",
-
-    # Customer value
     "customer_lifetime_value_usd",
     "total_spend_usd",
     "avg_order_value_usd",
     "num_purchases",
-
-    # Churn / business impact
     "churn_reason",
-    "churn_revenue_impact_usd"
+    "churn_revenue_impact_usd",
+    "customer_country"
 ]
 
 
@@ -76,24 +69,7 @@ df_final = df[columns_to_keep].copy()
 
 
 # --------------------------------------------------
-# 3. Remove incomplete customer record
-# --------------------------------------------------
-# Remove rows where the main analytical features are missing.
-df_final = df_final.dropna(
-    subset=[
-        "customer_age_months",
-        "satisfaction_score",
-        "engagement_level",
-        "support_tickets",
-        "support_interactions",
-        "returns_count",
-        "days_since_last_purchase"
-    ]
-)
-
-
-# --------------------------------------------------
-# 4. Check final dataset
+# 3. Check selected data
 # --------------------------------------------------
 print("\n=== Final Dataset ===")
 print("Shape:", df_final.shape)
@@ -101,10 +77,19 @@ print("Shape:", df_final.shape)
 print("\nColumns:")
 print(df_final.columns.tolist())
 
-print("\nMissing Values:")
-print(df_final.isna().sum())
+print("\nMissing values:")
+missing_values = df_final.isna().sum()
 
-print("\nChurn Distribution:")
+if missing_values.sum() == 0:
+    print("No missing values.")
+else:
+    print(missing_values[missing_values > 0])
+
+
+# --------------------------------------------------
+# 4. Check churn distribution
+# --------------------------------------------------
+print("\nChurn flag values:")
 print(df_final["churn_flag"].value_counts())
 
 
@@ -116,5 +101,5 @@ OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 df_final.to_csv(OUTPUT_PATH, index=False)
 
 print("\n=== Feature Engineering Complete ===")
-print("Final dataset saved to:", OUTPUT_PATH)
-
+print("Final shape:", df_final.shape)
+print("Saved to:", OUTPUT_PATH)
