@@ -1,69 +1,91 @@
-
 # E-Commerce Customer Churn Analysis
 
 ## Project Overview
 
-Customer churn is an important challenge for e-commerce businesses. Understanding customer behavior and identifying patterns associated with churn can help businesses investigate customer retention opportunities and improve the customer experience.
+Customer churn means that a customer leaves a business or stops purchasing. For an e-commerce company, this may reduce future repeat sales and increase the need to find new customers.
 
-This project analyzes e-commerce customer data to explore the relationships between customer characteristics, purchasing behavior, satisfaction, engagement, and churn.
+This project studies whether churn is more closely associated with:
 
-The project follows a data analysis workflow that includes:
+1. **Current risk signals** related to customer experience and disengagement.
+2. **Past investment** based on spending, purchases, and relationship length.
 
-1. Data preprocessing and cleaning
-2. Exploratory data analysis (EDA)
-3. Feature engineering
-4. Data visualization
-5. Interpretation of findings and potential business implications
+We first explore five possible risk signals separately. We then combine them into a risk-signal count and compare that count with past investment in one heatmap.
 
-The objective is to transform raw customer data into a consistent and interpretable dataset, investigate patterns associated with churn, and communicate observations through visualizations.
+The main finding is that churn changes much more as risk signals accumulate than it does across past-investment levels. This is a descriptive analysis. It shows associations, not causes.
 
 **Course:** Duke AIPI 510  
 **Project:** Project 1 — E-Commerce Customer Churn Analysis
 
 ---
 
-## Research Questions
+## Main Question
 
-This project investigates the following questions:
-
-1. How does customer churn vary across different customer groups?
-2. How is purchasing behavior, including purchase recency and returns, associated with customer churn?
-3. How do customer satisfaction and customer support interactions differ between churned and non-churned customers?
-4. What relationships can be observed between customer engagement and churn?
-5. What insights from the analysis could inform further investigation of customer retention?
-
-These questions guide the exploratory analysis and visualization process. Observed associations do not necessarily indicate causal relationships.
+Does a customer's past spending and relationship history protect them from churn, or do current experience and disengagement signals show a clearer pattern?
 
 ---
 
 ## Dataset
 
-The project uses the **E-commerce Customer Churn 2026** dataset.
+We use the **E-Commerce Customer Churn Dataset** published by **Shair Khan (DatasciKhan)** on Kaggle.
 
-### Data Files
+- **Records:** 50,000
+- **Columns:** 48
+- **File:** `E-commerce_Customer_Churn_2026.csv`
+- **License:** CC0: Public Domain
+- **Source:** [Kaggle — E-Commerce Customer Churn Dataset](https://www.kaggle.com/datasets/datascikhan/e-commerce-customer-churn-2026)
 
-| File | Description |
-|---|---|
-| `data/raw/E-commerce_Customer_Churn_2026.csv` | Original raw dataset |
-| `data/cleaned/preprocessed_customer_churn.csv` | Dataset produced by the preprocessing stage |
-| `data/cleaned/customer_churn_final.csv` | Final dataset prepared for downstream analysis |
-
-The raw dataset contains customer-level information related to purchasing activity, customer experience, engagement, and churn.
+The dataset includes customer profile, transaction, engagement, satisfaction, support, return, and churn information.
 
 ### Target Variable
 
-The primary target variable is `churn_flag`.
+We use `churn_flag` as the target variable:
 
-- `0`: Customer has not churned.
-- `1`: Customer has churned.
+- `0`: active or not churned
+- `1`: churned
 
-This variable is used to distinguish churned customers from non-churned customers throughout the analysis.
+The overall churn rate in the dataset is **41.3%**.
 
-### Selected Features
+### Data Files
 
-The analysis retains 18 selected columns covering customer characteristics, purchasing behavior, satisfaction, support activity, engagement, loyalty, and churn-related information.
+| File                                           | Description                                         |
+| ---------------------------------------------- | --------------------------------------------------- |
+| `data/raw/E-commerce_Customer_Churn_2026.csv`  | Original dataset with 50,000 records and 48 columns |
+| `data/cleaned/preprocessed_customer_churn.csv` | Output from `preprocessing.py`                      |
+| `data/cleaned/customer_churn_final.csv`        | Final 18-column dataset used by `visualization.py`  |
 
-These features support the project's exploratory analysis and subsequent visualizations.
+The raw dataset has missing values in `subscription_type`, `prevention_method`, and `social_media_engagement`. These columns are not used in the final visualization dataset. The 18 selected final columns have no missing values.
+
+---
+
+## Analysis Design
+
+### Five Risk Signals
+
+The five signals summarize current experience friction and disengagement.
+
+| Signal                | Rule                             | Interpretation                             |
+| --------------------- | -------------------------------- | ------------------------------------------ |
+| Low satisfaction      | `satisfaction_score <= 2`        | The customer reports a negative experience |
+| Low engagement        | `engagement_level == "Low"`      | The customer has low platform activity     |
+| High support activity | `support_tickets >= 12`          | The customer has repeated support needs    |
+| Frequent returns      | `returns_count >= 5`             | The customer has higher return activity    |
+| Purchase inactivity   | `days_since_last_purchase >= 61` | The customer has not purchased recently    |
+
+Each condition is converted to 0 or 1. The five values are added to create `risk_signal_count`, which ranges from 0 to 5. All signals receive equal weight.
+
+### Past Investment
+
+Past investment uses three observed features:
+
+- `total_spend_usd`
+- `num_purchases`
+- `customer_age_months` — the length of the customer relationship, not the customer's biological age
+
+Each feature is converted to a percentile rank. The three percentiles are averaged to create `relationship_investment_score`. Customers are then divided into five equal-sized groups:
+
+`Very Low`, `Low`, `Medium`, `High`, and `Very High`.
+
+This measure describes past spending and relationship history. It is not future profit, customer quality, or customer lifetime value.
 
 ---
 
@@ -71,276 +93,217 @@ These features support the project's exploratory analysis and subsequent visuali
 
 ```text
 510-project1/
-│
 ├── README.md
-│
 ├── data/
-│   ├── .DS_Store
-│   │
-│   ├── cleaned/
-│   │   ├── customer_churn_final.csv
-│   │   └── preprocessed_customer_churn.csv
-│   │
-│   └── raw/
-│       └── E-commerce_Customer_Churn_2026.csv
-│
+│   ├── raw/
+│   │   └── E-commerce_Customer_Churn_2026.csv
+│   └── cleaned/
+│       ├── preprocessed_customer_churn.csv
+│       └── customer_churn_final.csv
 ├── scripts/
+│   ├── preprocessing.py
 │   ├── eda.py
 │   ├── feature_engineering.py
-│   └── preprocessing.py
-│
-└── visualizations/
-    ├── churn_by_engagement.png
-    ├── churn_by_purchase_recency.png
-    ├── churn_by_returns.png
-    ├── churn_by_satisfaction.png
-    ├── churn_by_support_interactions.png
-    └── churn_by_support_tickets.png
+│   ├── visualization.py
+│   └── visualization.ipynb
+└── outputs/
+    ├── 01_churn_by_satisfaction.png
+    ├── 02_churn_by_engagement.png
+    ├── 03_churn_by_support_tickets.png
+    ├── 04_churn_by_returns.png
+    ├── 05_churn_by_days_since_last_purchase.png
+    └── 06_risk_signals_and_past_investment.png
 ```
+
+Running `scripts/eda.py` also creates a `visualizations/` folder with additional exploratory charts. The six presentation-ready charts are saved in `outputs/` by `scripts/visualization.py`.
 
 ---
 
-## Methodology
+## Workflow
 
-### 1. Data Preprocessing
+### 1. Preprocessing
 
 **Script:** `scripts/preprocessing.py`
 
-The preprocessing stage prepares the raw customer data for analysis.
+This script:
 
-The workflow includes:
+- loads the raw CSV;
+- reports the shape, columns, missing values, and full-row duplicates;
+- removes exact duplicate rows;
+- converts `churn_flag` to numeric;
+- removes records with an invalid or missing `churn_flag`; and
+- saves `data/cleaned/preprocessed_customer_churn.csv`.
 
-- Loading the original CSV file.
-- Inspecting dataset dimensions, column names, and data types.
-- Examining missing values and duplicate records.
-- Checking the churn target and relevant data values.
-- Standardizing inconsistent values where appropriate.
-- Selecting the variables required for downstream analysis.
-- Saving the preprocessed dataset.
+The script checks all missing values but does not impute the three unused columns with missing data.
 
-**Output:**
-
-`data/cleaned/preprocessed_customer_churn.csv`
-
-The purpose of this stage is to improve data consistency while preserving usable customer records and avoiding unnecessary data loss.
-
-### 2. Exploratory Data Analysis (EDA)
+### 2. Exploratory Data Analysis
 
 **Script:** `scripts/eda.py`
 
-Exploratory data analysis is used to understand the structure and characteristics of the customer dataset.
+This script calculates the overall churn rate and explores churn across:
 
-The analysis investigates customer behavior and compares churn-related patterns across relevant variables, including:
+- satisfaction score;
+- engagement level;
+- support tickets;
+- support interactions;
+- returns;
+- days since last purchase;
+- customer segment; and
+- customer value category.
 
-- Customer engagement
-- Purchase recency
-- Product returns
-- Customer satisfaction
-- Customer support interactions
-- Customer support tickets
-
-Descriptive statistics and visualizations help identify patterns, differences between customer groups, and potential directions for further investigation.
+It prints the grouped churn rates and saves exploratory charts in `visualizations/`.
 
 ### 3. Feature Engineering
 
 **Script:** `scripts/feature_engineering.py`
 
-The feature engineering stage prepares the processed customer data for downstream analysis.
+This script:
 
-This stage works with the preprocessed dataset and produces the final analysis dataset.
+- creates `purchase_recency_group` from `days_since_last_purchase`;
+- selects 18 columns used in the final analysis;
+- checks the selected data; and
+- saves `data/cleaned/customer_churn_final.csv`.
 
-**Output:**
+The chart-specific groups, five binary risk signals, risk-signal count, percentile ranks, and investment levels are created in `scripts/visualization.py`.
 
-`data/cleaned/customer_churn_final.csv`
+### 4. Final Visualization
 
-The final dataset provides a consistent set of selected variables for subsequent analysis and visualization.
+**Script:** `scripts/visualization.py`
 
-### 4. Data Visualization
+This script loads `customer_churn_final.csv`, creates all chart-specific features, and generates six final figures in `outputs/`.
 
-The project includes six visualizations examining churn in relation to customer behavior and experience.
-
-The charts are stored in the `visualizations/` directory.
-
-| Visualization | Analytical Focus |
-|---|---|
-| `churn_by_engagement.png` | Customer engagement and churn |
-| `churn_by_purchase_recency.png` | Purchase recency and churn |
-| `churn_by_returns.png` | Product returns and churn |
-| `churn_by_satisfaction.png` | Customer satisfaction and churn |
-| `churn_by_support_interactions.png` | Support interactions and churn |
-| `churn_by_support_tickets.png` | Support tickets and churn |
+The notebook `scripts/visualization.ipynb` shows the same analysis in an interactive EDA format. The `.py` script is the reproducible version used to generate the saved figures.
 
 ---
 
-## Visualizations
+## How to Reproduce the Analysis
 
-### Customer Engagement and Churn
-
-![Customer engagement and churn](visualizations/churn_by_engagement.png)
-
-### Purchase Recency and Churn
-
-![Purchase recency and churn](visualizations/churn_by_purchase_recency.png)
-
-### Product Returns and Churn
-
-![Product returns and churn](visualizations/churn_by_returns.png)
-
-### Customer Satisfaction and Churn
-
-![Customer satisfaction and churn](visualizations/churn_by_satisfaction.png)
-
-### Customer Support Interactions and Churn
-
-![Customer support interactions and churn](visualizations/churn_by_support_interactions.png)
-
-### Customer Support Tickets and Churn
-
-![Customer support tickets and churn](visualizations/churn_by_support_tickets.png)
-
----
-
-## Tools and Technologies
-
-The project uses the following tools and technologies:
-
-- **Python** — data processing and analysis
-- **Pandas** — data loading, cleaning, transformation, and aggregation
-- **NumPy** — numerical operations
-- **Matplotlib** — data visualization
-- **Seaborn** — statistical visualization, where used
-- **Git and GitHub** — version control and collaborative development
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3
-- pip
-- The project repository and its raw CSV dataset
-
-### Step 1: Clone the Repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/yanliu-dev/510-project1.git
 cd 510-project1
 ```
 
-### Step 2: Install Dependencies
+### 2. Create and Activate a Virtual Environment
 
-Install the core data analysis and visualization packages:
+macOS or Linux:
 
 ```bash
-python -m pip install pandas numpy matplotlib seaborn
+python3 -m venv env
+source env/bin/activate
 ```
 
-If additional packages are imported by the scripts, install them before running the corresponding script.
+Windows:
 
-### Step 3: Run Data Preprocessing
+```bash
+python -m venv env
+env\Scripts\activate
+```
+
+### 3. Install Dependencies
+
+```bash
+python -m pip install pandas matplotlib seaborn jupyter
+```
+
+### 4. Confirm the Raw Data File
+
+The repository includes the raw dataset at:
+
+```text
+data/raw/E-commerce_Customer_Churn_2026.csv
+```
+
+If the raw file is unavailable, download it from the [Kaggle dataset page](https://www.kaggle.com/datasets/datascikhan/e-commerce-customer-churn-2026) and place it at the path above.
+
+### 5. Run the Pipeline
+
+Run the scripts from the repository root in this order:
 
 ```bash
 python scripts/preprocessing.py
-```
-
-This step loads and preprocesses the raw dataset and saves the resulting preprocessed data.
-
-### Step 4: Run Exploratory Data Analysis
-
-```bash
 python scripts/eda.py
+python scripts/feature_engineering.py
+python scripts/visualization.py
 ```
 
-This step performs exploratory analysis using the available customer data.
+After the last command, the six final figures will be available in `outputs/`.
 
-### Step 5: Run Feature Engineering
+### 6. Optional: Open the Notebook
 
 ```bash
-python scripts/feature_engineering.py
+jupyter notebook scripts/visualization.ipynb
 ```
 
-This step generates the final analysis dataset.
+---
 
-**Execution note:** These commands assume that the scripts use the repository-relative input and output paths described in this README. Make sure the expected input files are available before running each script.
+## Final Visualizations
+
+### 1. Satisfaction
+
+![Churn rate by satisfaction](outputs/01_churn_by_satisfaction.png)
+
+### 2. Engagement
+
+![Churn rate by engagement](outputs/02_churn_by_engagement.png)
+
+### 3. Support Tickets
+
+![Churn rate by support tickets](outputs/03_churn_by_support_tickets.png)
+
+### 4. Returns
+
+![Churn rate by returns](outputs/04_churn_by_returns.png)
+
+### 5. Days Since Last Purchase
+
+![Churn rate by purchase inactivity](outputs/05_churn_by_days_since_last_purchase.png)
+
+### 6. Risk Signals and Past Investment
+
+![Risk signals and past investment heatmap](outputs/06_risk_signals_and_past_investment.png)
 
 ---
 
-## Results and Interpretation
+## Key Findings
 
-The project's analysis focuses on the relationships between churn and:
+- Customers with positive or neutral satisfaction had churn rates near **29–30%**. Dissatisfied groups had churn rates near **59–60%**.
+- High- and medium-engagement customers had churn rates near **33%**, while low-engagement customers reached **61.9%**.
+- Churn increased to about **51–53%** in the highest support-ticket groups.
+- Returns and purchase inactivity showed smaller but still visible relationships with churn.
+- Overall churn increased from **6.1%** for customers with 0 risk signals to **94.4%** for customers with all 5 signals.
+- Overall churn across the five past-investment groups stayed between **40.8% and 42.1%**.
 
-- Customer engagement
-- Purchase recency
-- Product returns
-- Customer satisfaction
-- Customer support interactions
-- Customer support tickets
-
-The visualizations provide a basis for examining differences between churned and non-churned customers.
-
-The interpretation of the results should consider:
-
-- Whether differences between customer groups are substantial.
-- Whether observed patterns are consistent across relevant variables.
-- Whether findings may be affected by missing data, data quality, or preprocessing decisions.
-- Whether additional statistical analysis or predictive modeling is needed to validate the observations.
-
-Specific findings and business recommendations should be based on the actual analysis outputs and chart values.
+The heatmap therefore shows a strong vertical pattern by risk-signal count and very little horizontal change by past investment.
 
 ---
 
-## Limitations
+## Limitations and Ethical Considerations
 
-Several limitations should be considered when interpreting the results:
-
-- The analysis is limited to the information available in the supplied dataset.
-- Observational relationships do not establish causation.
-- Data cleaning and feature selection decisions may influence the findings.
-- Patterns identified in this dataset may not generalize to other e-commerce businesses or customer populations.
-- Additional validation is needed before using the findings to guide operational decisions.
-
----
-
-## Future Work
-
-Potential extensions of this project include:
-
-- Investigating additional factors associated with customer churn.
-- Exploring customer segmentation and retention patterns in greater detail.
-- Developing and evaluating predictive churn models.
-- Comparing model performance across customer segments.
-- Testing potential retention strategies and measuring their effectiveness.
+- The analysis shows association, not causation.
+- The signal thresholds and equal weights were selected for this exploratory analysis. Different choices may change the results.
+- The heatmap does not include confidence intervals, and some risk-signal groups contain fewer records than others.
+- One public dataset may not represent every e-commerce business, country, product category, or time period.
+- A churn-risk label should be used to understand and support customers, not to exclude or pressure them. Businesses should protect customer privacy and check for unfair treatment across customer groups.
 
 ---
 
 ## Collaboration and Version Control
 
-The project is maintained using Git and GitHub.
+The project uses Git and GitHub for collaboration:
 
-The collaborative workflow includes:
+1. Each contributor works on an individual branch.
+2. Changes are committed with clear messages.
+3. Each group member opens at least one pull request.
+4. Another group member reviews the pull request.
+5. Feedback is addressed before the pull request is merged into `main`.
 
-1. Creating individual branches for development.
-2. Making and testing changes locally.
-3. Committing and pushing changes to GitHub.
-4. Opening pull requests for code review.
-5. Incorporating reviewer feedback and resolving conflicts.
-6. Merging reviewed contributions into the appropriate branch.
-
-This workflow supports transparent collaboration and helps maintain a traceable history of project changes.
+Repository: [yanliu-dev/510-project1](https://github.com/yanliu-dev/510-project1)
 
 ---
 
-## Acknowledgments
+## Citation
 
-This project was developed as part of Duke AIPI 510.
-
-We acknowledge the course instructors, collaborators, and dataset provider for the resources and contributions supporting this project.
-
----
-
-## Project Information
-
-- **Course:** Duke AIPI 510
-- **Project:** Project 1 — E-Commerce Customer Churn Analysis
-- **Repository:** [yanliu-dev/510-project1](https://github.com/yanliu-dev/510-project1)
+Khan, Shair. _E-Commerce Customer Churn Dataset_. Kaggle, 2026.  
+https://www.kaggle.com/datasets/datascikhan/e-commerce-customer-churn-2026
